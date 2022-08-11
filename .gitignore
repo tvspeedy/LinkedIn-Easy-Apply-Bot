@@ -142,8 +142,8 @@ dmypy.json
 .idea/
 
 # User files
-output.csv
-output*.csv
+res/output.csv
+res/output.csv
 venv8/
 quickstart.py
 states.json

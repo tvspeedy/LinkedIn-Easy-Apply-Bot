@@ -33,7 +33,7 @@ uploads:
 # Note file_key:file_paths contained inside the uploads section should be writted without a dash ('-') 
 
 output_filename:
-- # PATH TO OUTPUT FILE (default output.csv)
+- # PATH TO OUTPUT FILE (default res/output.csv)
 
 blacklist:
 - # Company names you want to ignore
