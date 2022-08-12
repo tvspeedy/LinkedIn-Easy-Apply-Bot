@@ -6,6 +6,7 @@ import re
 import time
 from _csv import reader
 from datetime import datetime, timedelta
+from os.path import exists
 
 import pandas as pd
 import pyautogui
@@ -45,7 +46,8 @@ def setupLogger():
 class EasyApplyBot:
     setupLogger()
     # MAX_SEARCH_TIME is 10 hours by default, feel free to modify it
-    MAX_SEARCH_TIME = 10 * 60 * 60
+    hours = 10
+    MAX_SEARCH_TIME = hours * 60 * 60
 
     def __init__(self,
                  username,
@@ -152,6 +154,7 @@ class EasyApplyBot:
 
         self.browser.set_window_position(0, 0)
         self.browser.maximize_window()
+        self.browser.execute_script("document.body.style.zoom='0.75'")
         self.browser, _ = self.next_jobs_page(position, location, jobs_per_page)
         log.info("Looking for jobs.. Please wait..")
 
@@ -179,8 +182,7 @@ class EasyApplyBot:
 
                 # get job links
                 links = self.browser.find_elements(By.XPATH,
-                                                   '//div[@data-job-id]'
-                                                   )
+                                                   '//div[@data-job-id]')
 
                 if len(links) == 0:
                     break
@@ -189,8 +191,7 @@ class EasyApplyBot:
                 IDs = []
                 for link in links:
                     children = link.find_elements(By.XPATH,
-                                                  './/a[@data-control-name]'
-                                                  )
+                                                  './/a[@data-control-name]')
                     for child in children:
                         if child.text in self.companiesAppliedTo:
                             log.info('Already applied to company: ' + child.text)
@@ -198,6 +199,8 @@ class EasyApplyBot:
                             temp = link.get_attribute("data-job-id")
                             jobID = temp.split(":")[-1]
                             IDs.append(int(jobID))
+                            #add company name to list
+                            self.companiesAppliedTo.append(child.text)
                 IDs = set(IDs)
 
                 # remove already applied jobs
@@ -247,18 +250,18 @@ class EasyApplyBot:
                     # sleep every 20 applications
                     if count_application != 0 and count_application % 20 == 0:
                         sleepTime = random.randint(100, 300)
-                        log.info(f"""********count_application: {count_application}************\n\n
+                        log.info(f"""********count_application: {count_application}************\n
                                     Time for a nap - see you in:{int(sleepTime / 60)} min
-                                ****************************************\n\n""")
+                                ****************************************\n""")
                         time.sleep(sleepTime)
 
                     # go to new page if all jobs are done
                     if count_job == len(jobIDs):
                         jobs_per_page = jobs_per_page + 25
                         count_job = 0
-                        log.info("""****************************************\n\n
+                        log.info("""****************************************\n
                         Going to next jobs page, YEAAAHHH!!
-                        ****************************************\n\n""")
+                        ****************************************\n""")
                         self.avoid_lock()
                         self.browser, jobs_per_page = self.next_jobs_page(position,
                                                                           location,
@@ -307,6 +310,7 @@ class EasyApplyBot:
                                                   button_locator[1])) > 0
 
         try:
+            self.browser.execute_script("window.scrollTo(0,800);")
             time.sleep(random.uniform(1.5, 2.5))
             next_locater = (By.CSS_SELECTOR,
                             "button[aria-label='Continue to next step']")
@@ -326,7 +330,7 @@ class EasyApplyBot:
 
                 # Upload Cover Letter if possible
                 if is_present(upload_locator):
-
+                    self.browser.execute_script("window.scrollTo(0,800);")
                     input_buttons = self.browser.find_elements(upload_locator[0],
                                                                upload_locator[1])
                     for input_button in input_buttons:
@@ -346,7 +350,9 @@ class EasyApplyBot:
                 button = None
                 buttons = [next_locater, review_locater, follow_locator,
                            submit_locater, submit_application_locator]
+
                 for i, button_locator in enumerate(buttons):
+                    self.browser.execute_script("window.scrollTo(0,800);")
                     if is_present(button_locator):
                         button = self.wait.until(EC.element_to_be_clickable(button_locator))
 
@@ -358,6 +364,7 @@ class EasyApplyBot:
                                 button = None
                                 break
                     if button:
+                        self.browser.execute_script("window.scrollTo(0,800);")
                         button.click()
                         time.sleep(random.uniform(1.5, 2.5))
                         if i in (3, 4):
@@ -406,7 +413,9 @@ class EasyApplyBot:
         pyautogui.press('esc')
 
     def next_jobs_page(self, position, location, jobs_per_page):
+        #Full time
         jobType = "&f_JT=F"
+        #> $120k
         salary = "&f_SB2=5"
 
         self.browser.get(
@@ -419,7 +428,6 @@ class EasyApplyBot:
 
     def finish_apply(self):
         self.browser.close()
-
 
 if __name__ == '__main__':
 
@@ -450,28 +458,38 @@ if __name__ == '__main__':
     for key in uploads.keys():
         assert uploads[key] is not None
 
+    if exists("outputFailedApplications.py"):
+        log.info("Outputting failed applications")
+        os.system("outputFailedApplications.py")
+        time.sleep(5)
 
-    #Update 'CompaniesAppliedTo.txt"
-    exec("updateCompaniesAppliedTo.py")
-    companies_applied_to = []
-    with open("res/CompaniesAppliedTo.txt", "r") as my_file:
-        file_reader = reader(my_file)
-        # do this for all the rows
-        for entry in file_reader:
-            if len(entry) == 1:
-                companies_applied_to.append(entry[0])
+    if exists("redoApplications.py"):
+        log.info("Updating output.csv")
+        os.system("redoApplications.py")
+        time.sleep(5)
 
+    if exists("updateCompaniesAppliedTo.py"):
+        os.system("updateCompaniesAppliedTo.py")
+        time.sleep(5)
+        log.info("Updating CompaniesAppliedTo")
+        companies_applied_to = []
+        with open("res/CompaniesAppliedTo.txt", "r") as my_file:
+            file_reader = reader(my_file)
+            # do this for all the rows
+            for entry in file_reader:
+                if len(entry) == 1:
+                    companies_applied_to.append(entry[0])
 
+        bot = EasyApplyBot(parameters['username'],
+                           parameters['password'],
+                           uploads=uploads,
+                           filename=output_filename,
+                           blacklist=blacklist,
+                           blackListTitles=blackListTitles,
+                           companies_applied_to=companies_applied_to
+                           )
 
-    bot = EasyApplyBot(parameters['username'],
-                       parameters['password'],
-                       uploads=uploads,
-                       filename=output_filename,
-                       blacklist=blacklist,
-                       blackListTitles=blackListTitles,
-                       companies_applied_to=companies_applied_to
-                       )
+        locations = [l for l in parameters['locations'] if l is not None]
+        positions = [p for p in parameters['positions'] if p is not None]
+        bot.start_apply(positions, locations)
 
-    locations = [l for l in parameters['locations'] if l is not None]
-    positions = [p for p in parameters['positions'] if p is not None]
-    #bot.start_apply(positions, locations)

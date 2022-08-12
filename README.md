@@ -53,3 +53,10 @@ To execute the bot run the following in your terminal
 python3 easyapplybot.py
 ```
 
+
+## Workflow
+1. Set your preferences in res/config.yaml
+2. Run easyapplybot.py for an hour
+3. Manually apply to all failed jobs in 'failedApplications.txt'
+    * LinkedIn saved questions answered, so manually applying will lead to fewer failures
+4. Repeat steps 2 and 3

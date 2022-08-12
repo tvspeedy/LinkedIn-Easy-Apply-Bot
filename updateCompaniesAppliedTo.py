@@ -13,7 +13,7 @@ def read_in_output(filePath)-> list:
         # do this for all the rows
         for entry in file_reader:
             # print the rows
-            if len(entry) > 2:
+            if len(entry) == 6 and entry[5] == 'True':
                 companies.append(entry[3])
             elif len(entry) == 1:
                 companies.append(entry[0])

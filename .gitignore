@@ -143,7 +143,6 @@ dmypy.json
 
 # User files
 res/output.csv
-res/output.csv
 venv8/
 quickstart.py
 states.json
